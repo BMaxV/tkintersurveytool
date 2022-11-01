@@ -4,11 +4,8 @@ from tkinter.filedialog import askopenfilename
 import os
 import datetime
 
-class Question:
-    def __init__(self, question, option_list):
-        self.question_text = question
-        self.option_list = option_list
-        self.selected_answer = None
+import surveytypes
+
 
 
 class myApp:
@@ -45,25 +42,6 @@ class myApp:
 
     def run(self):
         self.root.mainloop()
-
-    def load_questions_from_text(self, string):
-        """
-        input format is
-        question?,answer,answer,answer
-
-        other is always added at the end automatically.
-        """
-
-        string = string.split("\n")
-        for line in string:
-            if line == '':
-                continue
-            line = line.split(",")
-            if len(line) <= 1:
-                raise TypeError(
-                    "I don't think that's a valid question:" + str(line))
-
-            self.questions.append(Question(line[0], line[1:]))
 
     def openFile(self):
 
@@ -139,7 +117,7 @@ class myApp:
 
         if self.question_index >= len(self.questions):
             # all done, collect outputs and zero everything
-            self.output_answers()
+            self.output_answers_to_csv(self.questions)
             self.questions = []
             self.active_var = None
             self.question_index = 0
@@ -150,22 +128,43 @@ class myApp:
 
         self.build_question_window(self.questions[self.question_index])
 
-    def output_answers(self):
-        """output format is
-        question, given answer
-        
-        obviously only makes sense in connection with the input form
-        """
-        
-        # append it, for easier data collection
-        with open("output.csv", "a") as f:
-            f.write("new entry," + datetime.datetime.now().isoformat() + "\n")
-            for question in self.questions:
-                f.write(
-                    ",".join(
-                        (question.question_text,
-                         question.selected_answer)) +
-                    "\n")
+def output_answers_to_csv(questions):
+    """output format is
+    question, given answer
+    
+    obviously only makes sense in connection with the input form
+    """
+    
+    # append it, for easier data collection
+    with open("output.csv", "a") as f:
+        f.write("new entry," + datetime.datetime.now().isoformat() + "\n")
+        for question in questions:
+            f.write(
+                ",".join(
+                    (question.question_text,
+                     question.selected_answer)) +
+                "\n")
+
+
+def load_questions_from_text(string):
+    """
+    input format is
+    question?,answer,answer,answer
+
+    other is always added at the end automatically.
+    """
+
+    string = string.split("\n")
+    for line in string:
+        if line == '':
+            continue
+        line = line.split(",")
+        if len(line) <= 1:
+            raise TypeError(
+                "I don't think that's a valid question:" + str(line))
+
+        self.questions.append(surveytypes.Question(line[0], line[1:]))
+
 
 
 if __name__ == "__main__":
