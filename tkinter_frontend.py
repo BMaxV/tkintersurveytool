@@ -2,16 +2,15 @@ import tkinter
 from tkinter.filedialog import askopenfilename
 
 import os
-import datetime
 
 import surveytypes
 
-
-
 class myApp:
     def __init__(self, question_fn=None):
-        self.questions = []
-        self.question_index = 0
+        self.core = surveytypes.App(question_fn)
+        
+        
+        
         self.root = tkinter.Tk()
         self.MenuBar = tkinter.Menu(self.root)
         self.FileMenu = tkinter.Menu(self.MenuBar, tearoff=0)
@@ -33,13 +32,10 @@ class myApp:
 
         self.root.title("Surveytool")
         self.FileMenu.add_command(label="Open", command=self.openFile)
-        if question_fn is not None:
-            with open(question_fn, "r") as f:
-                string = f.read()
-            self.load_questions_from_text(string)
-            self.question_index = 0
-            self.load_next_question()
-
+               
+        
+        self.load_next_question()
+        
     def run(self):
         self.root.mainloop()
 
@@ -48,8 +44,8 @@ class myApp:
         self.filename = askopenfilename(
             defaultextension=".txt", filetypes=[
                 ("All Files", "*.*"), ("Text Documents", "*.txt")])
-
-        if self.filename == "":
+        print(self.filename)
+        if len(self.filename) == 0:
             self.filename = None
         else:
             # try to open the file
@@ -59,7 +55,7 @@ class myApp:
             with open(self.filename, "r") as f:
                 text = f.read()
                 
-            self.load_questions_from_text(text)
+            self.core.questions+=surveytypes.load_questions_from_text(text)
             self.load_next_question()
 
     def build_question_window(self, question):
@@ -104,9 +100,7 @@ class myApp:
 
     def done(self):
         value = self.active_var.get()
-        answer = self.questions[self.question_index].option_list[value]
-        self.questions[self.question_index].selected_answer = answer
-        self.question_index += 1
+        answer = self.core.get_save_answer(value)
         
         #this deletes the UI elements for the current question
         for x in self.active_stuff:
@@ -114,58 +108,14 @@ class myApp:
         self.load_next_question()
 
     def load_next_question(self):
-
-        if self.question_index >= len(self.questions):
-            # all done, collect outputs and zero everything
-            self.output_answers_to_csv(self.questions)
-            self.questions = []
-            self.active_var = None
-            self.question_index = 0
+        q=self.core.load_next_question()
+        if q!=None:
+            self.build_question_window(q)
+        else:
             w = tkinter.Label(self.root, text="all done")
             w.pack()
             self.active_stuff.append(w)
-            return
-
-        self.build_question_window(self.questions[self.question_index])
-
-def output_answers_to_csv(questions):
-    """output format is
-    question, given answer
-    
-    obviously only makes sense in connection with the input form
-    """
-    
-    # append it, for easier data collection
-    with open("output.csv", "a") as f:
-        f.write("new entry," + datetime.datetime.now().isoformat() + "\n")
-        for question in questions:
-            f.write(
-                ",".join(
-                    (question.question_text,
-                     question.selected_answer)) +
-                "\n")
-
-
-def load_questions_from_text(string):
-    """
-    input format is
-    question?,answer,answer,answer
-
-    other is always added at the end automatically.
-    """
-
-    string = string.split("\n")
-    for line in string:
-        if line == '':
-            continue
-        line = line.split(",")
-        if len(line) <= 1:
-            raise TypeError(
-                "I don't think that's a valid question:" + str(line))
-
-        self.questions.append(surveytypes.Question(line[0], line[1:]))
-
-
+            
 
 if __name__ == "__main__":
     M = myApp("test_question.txt")
